@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InfiniCraft — 無限に広がるリアルなボクセルワールド</title>
+  <meta name="description" content="InfiniCraft は無限に生成されるリアルなボクセルワールドで、サバイバルとクリエイティブを遊べるサンドボックスゲームです。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <main id="app">
+    <div id="view"></div>
+
+    <!-- HUD -->
+    <section id="hud" class="hidden" aria-label="HUD">
+      <div id="crosshair"></div>
+      <div id="vignette"></div>
+      <div id="water-overlay"></div>
+      <div id="debug" class="hidden"></div>
+      <div id="toast"></div>
+      <div id="bottom">
+        <div id="stats">
+          <div id="hearts" class="iconrow"></div>
+          <div id="air" class="iconrow right"></div>
+          <div id="food" class="iconrow right"></div>
+        </div>
+        <div id="item-name"></div>
+        <div id="hotbar"></div>
+      </div>
+    </section>
+
+    <!-- Title -->
+    <section id="title" class="screen">
+      <div class="title-wrap">
+        <h1 class="logo">Infini<span>Craft</span></h1>
+        <p class="tagline">無限に広がる、リアルなボクセルワールド</p>
+        <div class="menu">
+          <button id="btn-play" class="btn primary">シングルプレイ</button>
+          <button id="btn-settings" class="btn">設定</button>
+          <button id="btn-help" class="btn">操作方法</button>
+          <button id="btn-quit" class="btn ghost">終了</button>
+        </div>
+      </div>
+      <footer class="ver">v1.0.0 · オリジナル作品（Minecraft とは関係ありません）</footer>
+    </section>
+
+    <!-- World list -->
+    <section id="worlds" class="screen hidden">
+      <div class="panel wide">
+        <h2>ワールドを選択</h2>
+        <div id="world-list"></div>
+        <div class="row">
+          <button id="btn-new-world" class="btn primary">新しいワールドを作成</button>
+          <button id="btn-worlds-back" class="btn ghost">戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Create world -->
+    <section id="create" class="screen hidden">
+      <div class="panel">
+        <h2>新しいワールド</h2>
+        <label class="field">ワールド名<input id="in-name" type="text" value="新しいワールド" maxlength="32" /></label>
+        <label class="field">シード値（空欄でランダム）<input id="in-seed" type="text" placeholder="例: 12345" /></label>
+        <div class="field">ゲームモード
+          <div class="seg" id="seg-mode">
+            <button data-v="survival" class="on">サバイバル</button>
+            <button data-v="creative">クリエイティブ</button>
+          </div>
+        </div>
+        <p id="mode-desc" class="desc">資源を集め、道具を作り、夜のゾンビから生き延びよう。</p>
+        <div class="row">
+          <button id="btn-create" class="btn primary">ワールドを生成</button>
+          <button id="btn-create-back" class="btn ghost">キャンセル</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="settings" class="screen hidden">
+      <div class="panel">
+        <h2>設定</h2>
+        <label class="field">描画距離 <b id="v-rd"></b><input id="s-rd" type="range" min="3" max="20" step="1" /></label>
+        <label class="field">視野角 (FOV) <b id="v-fov"></b><input id="s-fov" type="range" min="50" max="110" step="1" /></label>
+        <label class="field">マウス感度 <b id="v-sens"></b><input id="s-sens" type="range" min="0.2" max="3" step="0.1" /></label>
+        <label class="field">音量 <b id="v-vol"></b><input id="s-vol" type="range" min="0" max="1" step="0.05" /></label>
+        <div class="field">影の品質
+          <div class="seg" id="seg-shadow">
+            <button data-v="off">オフ</button><button data-v="low">低</button><button data-v="high">高</button><button data-v="ultra">ウルトラ</button>
+          </div>
+        </div>
+        <div class="field">画面の揺れ
+          <div class="seg" id="seg-bob"><button data-v="1">オン</button><button data-v="0">オフ</button></div>
+        </div>
+        <div class="row"><button id="btn-settings-back" class="btn primary">完了</button></div>
+      </div>
+    </section>
+
+    <!-- Help -->
+    <section id="help" class="screen hidden">
+      <div class="panel">
+        <h2>操作方法</h2>
+        <table class="keys">
+          <tr><td>W A S D</td><td>移動</td></tr>
+          <tr><td>マウス</td><td>視点移動</td></tr>
+          <tr><td>スペース</td><td>ジャンプ / 泳ぐ（クリエイティブ: 2回押しで飛行）</td></tr>
+          <tr><td>左Ctrl</td><td>ダッシュ</td></tr>
+          <tr><td>左Shift</td><td>スニーク（落ちない）/ 飛行中は下降</td></tr>
+          <tr><td>左クリック</td><td>ブロックを壊す / 攻撃</td></tr>
+          <tr><td>右クリック</td><td>ブロックを置く / 食べる / 作業台・かまどを使う</td></tr>
+          <tr><td>ホイール / 1〜9</td><td>アイテム選択</td></tr>
+          <tr><td>E</td><td>インベントリ</td></tr>
+          <tr><td>Q</td><td>アイテムを捨てる</td></tr>
+          <tr><td>中クリック</td><td>ブロックを選ぶ（クリエイティブ）</td></tr>
+          <tr><td>F3</td><td>デバッグ情報</td></tr>
+          <tr><td>F11</td><td>フルスクリーン</td></tr>
+          <tr><td>Esc</td><td>ポーズメニュー</td></tr>
+        </table>
+        <div class="row"><button id="btn-help-back" class="btn primary">戻る</button></div>
+      </div>
+    </section>
+
+    <!-- Pause -->
+    <section id="pause" class="screen hidden dim">
+      <div class="panel">
+        <h2>ポーズ</h2>
+        <div class="menu">
+          <button id="btn-resume" class="btn primary">ゲームに戻る</button>
+          <button id="btn-pause-settings" class="btn">設定</button>
+          <button id="btn-pause-mode" class="btn">ゲームモード切替</button>
+          <button id="btn-save-quit" class="btn ghost">セーブしてタイトルへ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Death -->
+    <section id="death" class="screen hidden red">
+      <div class="title-wrap">
+        <h2 class="dead-title">死んでしまった！</h2>
+        <p id="death-cause"></p>
+        <div class="menu">
+          <button id="btn-respawn" class="btn primary">リスポーン</button>
+          <button id="btn-death-quit" class="btn ghost">タイトルへ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading -->
+    <section id="loading" class="screen hidden">
+      <div class="title-wrap">
+        <div class="spinner"></div>
+        <p id="loading-text">ワールドを生成中...</p>
+        <div class="bar"><div id="loading-bar"></div></div>
+      </div>
+    </section>
+
+    <!-- Container / inventory -->
+    <section id="container" class="screen hidden dim">
+      <div class="panel inv">
+        <h3 id="cont-title">インベントリ</h3>
+        <div id="cont-top"></div>
+        <div id="cont-main"></div>
+        <div id="cont-hotbar" class="grid9"></div>
+      </div>
+    </section>
+
+    <div id="cursor-stack"></div>
+    <div id="tooltip"></div>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
