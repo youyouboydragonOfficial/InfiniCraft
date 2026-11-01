@@ -5,6 +5,7 @@ export function createMaterials(atlas) {
     uAtlas: { value: atlas },
     uTime: { value: 0 },
     uDay: { value: 1 },
+    uMinLight: { value: 0.05 },
     uSkyColor: { value: new THREE.Color(0.5, 0.7, 1.0) },
   };
 
@@ -30,7 +31,7 @@ export function createMaterials(atlas) {
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
         precision highp sampler2DArray;
-        uniform sampler2DArray uAtlas; uniform float uDay;
+        uniform sampler2DArray uAtlas; uniform float uDay; uniform float uMinLight;
         varying vec3 vTerr; varying vec2 vTUv; varying float vLayer; varying vec3 vTint;`)
       .replace('#include <map_fragment>', `
         vec4 texel = texture(uAtlas, vec3(vTUv, floor(vLayer + 0.5)));
@@ -44,9 +45,9 @@ export function createMaterials(atlas) {
         float sunMask = smoothstep(0.55, 0.95, skyL);
         vec3 torch = vec3(1.0, 0.72, 0.42) * pow(blkL, 1.8) * 1.35 * (1.0 - skyF * uDay * 0.6);
         vec3 outgoingLight = reflectedLight.directDiffuse * sunMask * mix(0.75, 1.0, ao)
-                           + reflectedLight.indirectDiffuse * (skyF * 0.95 + 0.05) * ao
+                           + reflectedLight.indirectDiffuse * mix(uMinLight, 1.0, skyF) * ao
                            + diffuseColor.rgb * torch * ao
-                           + diffuseColor.rgb * 0.012 * ao;`);
+                           + diffuseColor.rgb * (0.012 + uMinLight * 0.16) * ao;`);
   };
 
   const make = (opts) => {

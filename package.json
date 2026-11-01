@@ -1,7 +1,7 @@
 {
   "name": "infinicraft",
   "productName": "InfiniCraft",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Infinite realistic voxel sandbox game - survival & creative",
   "main": "electron/main.cjs",
   "author": "youyouboydragonOfficial",

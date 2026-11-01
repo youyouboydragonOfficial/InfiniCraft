@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CS, CH, PAD } from './constants.js';
-import { SHAPE, SOLID, BLOCKS } from './blocks.js';
+import { SHAPE, SOLID, HEIGHT, BLOCKS, B } from './blocks.js';
 
 const W = CS + 2 * PAD;
 const key = (cx, cz) => cx + ',' + cz;
@@ -15,10 +15,10 @@ class Chunk {
 }
 
 export class World {
-  constructor(scene, seed, materials, savedChunks) {
-    this.scene = scene; this.seed = seed; this.mats = materials;
+  constructor(scene, seed, materials, savedChunks, dim = 'overworld') {
+    this.scene = scene; this.seed = seed; this.mats = materials; this.dim = dim;
     this.chunks = new Map();
-    this.saved = savedChunks || new Map(); // key -> Uint8Array (modified chunks)
+    this.saved = savedChunks || new Map(); // saveKey -> Uint8Array (modified chunks across dims)
     this.renderDist = 8;
     this.offsets = [];
     this.urgent = new Set();
@@ -30,10 +30,16 @@ export class World {
       w.busy = 0;
       w.onmessage = (e) => { w.busy--; this.onMessage(e.data); };
       w.onerror = (e) => console.error('worker error', e.message || e);
-      w.postMessage({ type: 'init', seed });
+      w.postMessage({ type: 'init', seed, dim });
       this.workers.push(w);
     }
     this.frame = 0;
+  }
+
+  saveKey(ck) { return this.dim === 'overworld' ? ck : `${this.dim}:${ck}`; }
+  getSaved(ck) {
+    if (this.dim === 'overworld') return this.saved.get(ck) || this.saved.get(`overworld:${ck}`);
+    return this.saved.get(`${this.dim}:${ck}`);
   }
 
   setRenderDistance(rd) {
@@ -76,7 +82,7 @@ export class World {
     const lx = x - cx * CS, lz = z - cz * CS;
     c.data[lx + lz * CS + y * CS * CS] = id;
     c.modified = true;
-    this.saved.set(c.key, c.data);
+    this.saved.set(this.saveKey(c.key), c.data);
     this.markDirty(c);
     const dx = lx < PAD ? -1 : (lx >= CS - PAD ? 1 : 0);
     const dz = lz < PAD ? -1 : (lz >= CS - PAD ? 1 : 0);
@@ -89,6 +95,16 @@ export class World {
   markDirty(c) { if (!c) return; c.version++; this.urgent.add(c.key); }
 
   topSolid(x, z) {
+    if (this.dim === 'nether') {
+      for (let y = 108; y >= 31; y--) {
+        const b = this.getBlock(x, y, z);
+        if (b > 0 && SOLID[b] && b !== B.BEDROCK) {
+          const a1 = this.getBlock(x, y + 1, z), a2 = this.getBlock(x, y + 2, z);
+          if (a1 === 0 && a2 === 0) return y;
+        }
+      }
+      return -1;
+    }
     for (let y = CH - 1; y > 0; y--) { const b = this.getBlock(x, y, z); if (b > 0 && SOLID[b]) return y; }
     return -1;
   }
@@ -110,7 +126,7 @@ export class World {
       if (!c) {
         c = new Chunk(cx, cz);
         this.chunks.set(k, c);
-        const s = this.saved.get(k);
+        const s = this.getSaved(k);
         if (s) { c.data = s; c.modified = true; }
       }
       if (!c.data && !c.genPending) {
@@ -154,7 +170,6 @@ export class World {
     const vol = new Uint8Array(W * W * CH);
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
       const n = this.getChunk(c.cx + dx, c.cz + dz).data;
-      // source x range in neighbor chunk
       const sx0 = dx === -1 ? CS - PAD : 0, sx1 = dx === 1 ? PAD : CS;
       const sz0 = dz === -1 ? CS - PAD : 0, sz1 = dz === 1 ? PAD : CS;
       const tx0 = dx === -1 ? 0 : (dx === 0 ? PAD : PAD + CS);
@@ -234,7 +249,7 @@ export class World {
     return { loaded: this.chunks.size, meshed };
   }
 
-  raycast(origin, dir, maxDist) {
+  raycast(origin, dir, maxDist, hitLiquid = false) {
     let x = Math.floor(origin.x), y = Math.floor(origin.y), z = Math.floor(origin.z);
     const sx = Math.sign(dir.x), sy = Math.sign(dir.y), sz = Math.sign(dir.z);
     const tdx = Math.abs(1 / dir.x), tdy = Math.abs(1 / dir.y), tdz = Math.abs(1 / dir.z);
@@ -244,8 +259,25 @@ export class World {
     if (!isFinite(tmx)) tmx = Infinity; if (!isFinite(tmy)) tmy = Infinity; if (!isFinite(tmz)) tmz = Infinity;
     let nx = 0, ny = 0, nz = 0, t = 0;
     while (t <= maxDist) {
+      const nextT = Math.min(tmx, tmy, tmz);
       const id = this.getBlock(x, y, z);
-      if (id > 0 && SHAPE[id] !== 4 && SHAPE[id] !== 0) return { x, y, z, nx, ny, nz, id, dist: t };
+      if (id > 0) {
+        const sh = SHAPE[id];
+        if (hitLiquid && sh === 4) return { x, y, z, nx, ny, nz, id, dist: t };
+        if (sh !== 4 && sh !== 0 && sh !== 6 && id !== B.END_PORTAL) {
+          const bh = HEIGHT[id];
+          if (bh < 1) {
+            const yA = origin.y + dir.y * t, yB = origin.y + dir.y * Math.min(nextT, maxDist);
+            const minY = Math.min(yA, yB), maxY = Math.max(yA, yB);
+            if (minY <= y + bh && maxY >= y) {
+              const topCross = dir.y < 0 && yA > y + bh;
+              return { x, y, z, nx: topCross ? 0 : nx, ny: topCross ? 1 : ny, nz: topCross ? 0 : nz, id, dist: t };
+            }
+          } else {
+            return { x, y, z, nx, ny, nz, id, dist: t };
+          }
+        }
+      }
       if (tmx < tmy && tmx < tmz) { x += sx; t = tmx; tmx += tdx; nx = -sx; ny = 0; nz = 0; }
       else if (tmy < tmz) { y += sy; t = tmy; tmy += tdy; nx = 0; ny = -sy; nz = 0; }
       else { z += sz; t = tmz; tmz += tdz; nx = 0; ny = 0; nz = -sz; }

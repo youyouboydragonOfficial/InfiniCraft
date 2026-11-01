@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>InfiniCraft — 無限に広がるリアルなボクセルワールド</title>
-  <meta name="description" content="InfiniCraft は無限に生成されるリアルなボクセルワールドで、サバイバルとクリエイティブを遊べるサンドボックスゲームです。" />
+  <meta name="description" content="InfiniCraft は無限に生成されるリアルなボクセルワールドで、オーバーワールド・ネザー・ジ・エンドを冒険できるサンドボックスゲームです。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet" />
 </head>
@@ -14,13 +14,21 @@
 
     <!-- HUD -->
     <section id="hud" class="hidden" aria-label="HUD">
-      <div id="crosshair"></div>
       <div id="vignette"></div>
       <div id="water-overlay"></div>
+      <div id="portal-overlay"></div>
+      <div id="fire-overlay"></div>
+      <div id="boss-wrap" class="hidden">
+        <div id="boss-name">エンダードラゴン</div>
+        <div class="boss-track"><div id="boss-fill"></div></div>
+      </div>
+      <div id="crosshair"></div>
+      <div id="bow-wrap" class="hidden"><div id="bow-fill"></div></div>
       <div id="debug" class="hidden"></div>
       <div id="toast"></div>
       <div id="bottom">
         <div id="stats">
+          <div id="armor" class="iconrow"></div>
           <div id="hearts" class="iconrow"></div>
           <div id="air" class="iconrow right"></div>
           <div id="food" class="iconrow right"></div>
@@ -34,15 +42,15 @@
     <section id="title" class="screen">
       <div class="title-wrap">
         <h1 class="logo">Infini<span>Craft</span></h1>
-        <p class="tagline">無限に広がる、リアルなボクセルワールド</p>
+        <p class="tagline">無限の大地・灼熱のネザー・果てのエンドへ</p>
         <div class="menu">
           <button id="btn-play" class="btn primary">シングルプレイ</button>
           <button id="btn-settings" class="btn">設定</button>
-          <button id="btn-help" class="btn">操作方法</button>
+          <button id="btn-help" class="btn">操作方法・遊び方</button>
           <button id="btn-quit" class="btn ghost">終了</button>
         </div>
       </div>
-      <footer class="ver">v1.0.0 · オリジナル作品（Minecraft とは関係ありません）</footer>
+      <footer class="ver">v2.0.0 · オリジナル作品（Minecraft とは関係ありません）</footer>
     </section>
 
     <!-- World list -->
@@ -69,7 +77,7 @@
             <button data-v="creative">クリエイティブ</button>
           </div>
         </div>
-        <p id="mode-desc" class="desc">資源を集め、道具を作り、夜のゾンビから生き延びよう。</p>
+        <p id="mode-desc" class="desc">資源を集め、装備を整え、ネザーとジ・エンドのエンダードラゴン討伐を目指そう。</p>
         <div class="row">
           <button id="btn-create" class="btn primary">ワールドを生成</button>
           <button id="btn-create-back" class="btn ghost">キャンセル</button>
@@ -99,23 +107,20 @@
 
     <!-- Help -->
     <section id="help" class="screen hidden">
-      <div class="panel">
-        <h2>操作方法</h2>
+      <div class="panel wide">
+        <h2>操作方法・ディメンション攻略</h2>
         <table class="keys">
           <tr><td>W A S D</td><td>移動</td></tr>
-          <tr><td>マウス</td><td>視点移動</td></tr>
+          <tr><td>W 2回押し / Ctrl</td><td>ダッシュ（Wを離すまで継続）</td></tr>
           <tr><td>スペース</td><td>ジャンプ / 泳ぐ（クリエイティブ: 2回押しで飛行）</td></tr>
-          <tr><td>左Ctrl</td><td>ダッシュ</td></tr>
-          <tr><td>左Shift</td><td>スニーク（落ちない）/ 飛行中は下降</td></tr>
-          <tr><td>左クリック</td><td>ブロックを壊す / 攻撃</td></tr>
-          <tr><td>右クリック</td><td>ブロックを置く / 食べる / 作業台・かまどを使う</td></tr>
-          <tr><td>ホイール / 1〜9</td><td>アイテム選択</td></tr>
-          <tr><td>E</td><td>インベントリ</td></tr>
-          <tr><td>Q</td><td>アイテムを捨てる</td></tr>
-          <tr><td>中クリック</td><td>ブロックを選ぶ（クリエイティブ）</td></tr>
-          <tr><td>F3</td><td>デバッグ情報</td></tr>
-          <tr><td>F11</td><td>フルスクリーン</td></tr>
-          <tr><td>Esc</td><td>ポーズメニュー</td></tr>
+          <tr><td>左Shift</td><td>スニーク（端から落ちない）/ 飛行中は下降</td></tr>
+          <tr><td>左クリック</td><td>採掘 / 攻撃（ガストの火球も打ち返せます）</td></tr>
+          <tr><td>右クリック</td><td>設置 / 食べる / 弓を引く / 着火 / 作業台・かまど・チェスト</td></tr>
+          <tr><td>E</td><td>インベントリ・防具・レシピブック（1クリック自動配置）</td></tr>
+          <tr><td>Q / 中クリック</td><td>捨てる（Ctrl+Qで全数） / ブロック選択（クリエ）</td></tr>
+          <tr><td>ネザーへ行く</td><td>黒曜石で 4×5 以上の枠を作り「火打石と打ち金」で着火</td></tr>
+          <tr><td>エンドへ行く</td><td>「エンダーアイ」を投げて地下要塞を探し、12個のフレームにはめる</td></tr>
+          <tr><td>F3 / F11 / Esc</td><td>デバッグ情報 / フルスクリーン / ポーズ</td></tr>
         </table>
         <div class="row"><button id="btn-help-back" class="btn primary">戻る</button></div>
       </div>
@@ -155,13 +160,30 @@
       </div>
     </section>
 
-    <!-- Container / inventory -->
+    <!-- Container / inventory + Recipe Book -->
     <section id="container" class="screen hidden dim">
-      <div class="panel inv">
-        <h3 id="cont-title">インベントリ</h3>
-        <div id="cont-top"></div>
-        <div id="cont-main"></div>
-        <div id="cont-hotbar" class="grid9"></div>
+      <div class="inv-layout">
+        <aside id="recipe-panel" class="panel recipe-panel hidden">
+          <div class="recipe-head">
+            <h3>📖 レシピブック</h3>
+            <button id="btn-recipe-filter" class="chip">すべて</button>
+          </div>
+          <input id="recipe-search" type="text" placeholder="レシピを検索…" />
+          <div id="recipe-list"></div>
+          <p class="recipe-hint">クリックで材料を自動配置（Shiftで最大数）</p>
+        </aside>
+        <div class="panel inv">
+          <div class="inv-header">
+            <h3 id="cont-title">インベントリ</h3>
+            <div id="creative-tabs" class="seg compact hidden">
+              <button data-ctab="palette" class="on">📦 アイテム一覧</button>
+              <button data-ctab="craft">⚒ クラフト・装備</button>
+            </div>
+          </div>
+          <div id="cont-top"></div>
+          <div id="cont-main"></div>
+          <div id="cont-hotbar" class="grid9"></div>
+        </div>
       </div>
     </section>
 

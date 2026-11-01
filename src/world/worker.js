@@ -17,7 +17,7 @@ function tintGrid(cx, cz) {
 self.onmessage = (e) => {
   const m = e.data;
   if (m.type === 'init') {
-    gen = new Generator(m.seed);
+    gen = new Generator(m.seed, m.dim || 'overworld');
   } else if (m.type === 'gen') {
     const data = gen.generate(m.cx, m.cz);
     self.postMessage({ type: 'gen', key: m.key, data }, [data.buffer]);

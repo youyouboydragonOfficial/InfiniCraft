@@ -8,7 +8,13 @@ export const TILES = [
   'tall_grass', 'rose', 'dandelion', 'crafting_top', 'crafting_side', 'furnace_front', 'furnace_side',
   'furnace_top', 'torch', 'bricks', 'lamp', 'snow_grass_side', 'clay', 'wool', 'stone_bricks', 'bookshelf',
   'dead_bush', 'mossy_cobble', 'obsidian', 'iron_block', 'gold_block', 'diamond_block', 'coal_block',
-  'birch_planks', 'spruce_planks', 'furnace_front_on', 'blue_flower', 'fern'
+  'birch_planks', 'spruce_planks', 'furnace_front_on', 'blue_flower', 'fern',
+  'tnt_side', 'tnt_top', 'tnt_bottom', 'chest_front', 'chest_side', 'chest_top', 'bed_top', 'bed_side',
+  'farmland', 'wheat0', 'wheat1', 'wheat2', 'wheat3', 'oak_sapling', 'birch_sapling', 'spruce_sapling',
+  'netherrack', 'soul_sand', 'glowstone', 'quartz_ore', 'nether_bricks', 'portal', 'end_stone',
+  'eframe_top', 'eframe_eye_top', 'eframe_side', 'end_portal', 'dragon_egg', 'smooth_stone',
+  'red_wool', 'blue_wool', 'yellow_wool', 'green_wool', 'black_wool', 'pumpkin_side', 'pumpkin_top',
+  'melon_side', 'melon_top', 'quartz_block', 'pumpkin_face'
 ];
 export const TILE = Object.fromEntries(TILES.map((n, i) => [n, i]));
 
@@ -20,10 +26,16 @@ export const B = {
   BRICKS: 32, LAMP: 33, SNOW_GRASS: 34, CLAY: 35, WOOL: 36, STONE_BRICKS: 37, BOOKSHELF: 38,
   DEAD_BUSH: 39, MOSSY_COBBLE: 40, OBSIDIAN: 41, IRON_BLOCK: 42, GOLD_BLOCK: 43, DIAMOND_BLOCK: 44,
   COAL_BLOCK: 45, BIRCH_PLANKS: 46, SPRUCE_PLANKS: 47, BLUE_FLOWER: 48, FERN: 49,
+  TNT: 50, CHEST: 51, BED: 52, FARMLAND: 53, WHEAT0: 54, WHEAT1: 55, WHEAT2: 56, WHEAT3: 57,
+  OAK_SAPLING: 58, BIRCH_SAPLING: 59, SPRUCE_SAPLING: 60, NETHERRACK: 61, SOUL_SAND: 62, GLOWSTONE: 63,
+  QUARTZ_ORE: 64, NETHER_BRICKS: 65, NETHER_PORTAL: 66, END_STONE: 67, END_PORTAL_FRAME: 68,
+  END_PORTAL_FRAME_EYE: 69, END_PORTAL: 70, DRAGON_EGG: 71, STONE_SLAB: 72, OAK_SLAB: 73,
+  RED_WOOL: 74, BLUE_WOOL: 75, YELLOW_WOOL: 76, GREEN_WOOL: 77, BLACK_WOOL: 78, PUMPKIN: 79, MELON: 80,
+  QUARTZ_BLOCK: 81, JACK_O_LANTERN: 82,
 };
 
-// shape: 0 none, 1 cube, 2 cross, 3 torch, 4 liquid
-export const SH = { NONE: 0, CUBE: 1, CROSS: 2, TORCH: 3, LIQUID: 4 };
+// shape: 0 none, 1 cube, 2 cross, 3 torch, 4 liquid, 5 partial-height box, 6 portal (cutout, non-solid)
+export const SH = { NONE: 0, CUBE: 1, CROSS: 2, TORCH: 3, LIQUID: 4, PARTIAL: 5, PORTAL: 6 };
 
 export const BLOCKS = [];
 function def(id, name, o) {
@@ -93,6 +105,42 @@ def(B.SPRUCE_PLANKS, 'トウヒの板材', { tex: 'spruce_planks', hardness: 2, 
 def(B.BLUE_FLOWER, '青いラン', { ...plant, tex: 'blue_flower', drop: B.BLUE_FLOWER, replaceable: false });
 def(B.FERN, 'シダ', { ...plant, tex: 'fern', tint: 1 });
 
+const partial = (h) => ({ opaque: false, shape: SH.PARTIAL, height: h });
+const crop = { ...plant, replaceable: false, crop: true, drop: 0 };
+def(B.TNT, 'TNT', { tex: { top: 'tnt_top', bottom: 'tnt_bottom', side: 'tnt_side' }, hardness: 0, sound: 'grass' });
+def(B.CHEST, 'チェスト', { tex: { top: 'chest_top', bottom: 'chest_top', side: 'chest_side', front: 'chest_front' }, hardness: 2.5, tool: 'axe', sound: 'wood', ...partial(0.875) });
+def(B.BED, 'ベッド', { tex: { top: 'bed_top', bottom: 'planks', side: 'bed_side' }, hardness: 0.2, sound: 'cloth', ...partial(0.5625) });
+def(B.FARMLAND, '耕地', { tex: { top: 'farmland', bottom: 'dirt', side: 'dirt' }, hardness: 0.6, tool: 'shovel', sound: 'gravel', drop: B.DIRT, ...partial(0.9375) });
+def(B.WHEAT0, '小麦（芽）', { ...crop, tex: 'wheat0' });
+def(B.WHEAT1, '小麦（成長中）', { ...crop, tex: 'wheat1' });
+def(B.WHEAT2, '小麦（成長中）', { ...crop, tex: 'wheat2' });
+def(B.WHEAT3, '小麦（実り）', { ...crop, tex: 'wheat3' });
+def(B.OAK_SAPLING, 'オークの苗木', { ...plant, tex: 'oak_sapling', drop: B.OAK_SAPLING, replaceable: false, sapling: 'oak' });
+def(B.BIRCH_SAPLING, '白樺の苗木', { ...plant, tex: 'birch_sapling', drop: B.BIRCH_SAPLING, replaceable: false, sapling: 'birch' });
+def(B.SPRUCE_SAPLING, 'トウヒの苗木', { ...plant, tex: 'spruce_sapling', drop: B.SPRUCE_SAPLING, replaceable: false, sapling: 'spruce' });
+def(B.NETHERRACK, 'ネザーラック', { tex: 'netherrack', hardness: 0.4, tool: 'pickaxe', needsTool: true });
+def(B.SOUL_SAND, 'ソウルサンド', { tex: 'soul_sand', hardness: 0.5, tool: 'shovel', sound: 'sand' });
+def(B.GLOWSTONE, 'グロウストーン', { tex: 'glowstone', hardness: 0.3, light: 15, sound: 'glass' });
+def(B.QUARTZ_ORE, 'ネザークォーツ鉱石', { tex: 'quartz_ore', hardness: 3, tool: 'pickaxe', tier: 1, needsTool: true });
+def(B.NETHER_BRICKS, 'ネザーレンガ', { tex: 'nether_bricks', hardness: 2, tool: 'pickaxe', needsTool: true });
+def(B.NETHER_PORTAL, 'ネザーポータル', { solid: false, opaque: false, shape: SH.PORTAL, tex: 'portal', hardness: -1, light: 11, drop: 0 });
+def(B.END_STONE, 'エンドストーン', { tex: 'end_stone', hardness: 3, tool: 'pickaxe', needsTool: true });
+def(B.END_PORTAL_FRAME, 'エンドポータルフレーム', { tex: { top: 'eframe_top', bottom: 'end_stone', side: 'eframe_side' }, hardness: -1, light: 1, ...partial(0.8125) });
+def(B.END_PORTAL_FRAME_EYE, 'エンドポータルフレーム（目）', { tex: { top: 'eframe_eye_top', bottom: 'end_stone', side: 'eframe_side' }, hardness: -1, light: 4, ...partial(0.8125) });
+def(B.END_PORTAL, 'エンドポータル', { solid: false, opaque: false, shape: SH.PARTIAL, height: 0.75, tex: 'end_portal', hardness: -1, light: 15, drop: 0 });
+def(B.DRAGON_EGG, 'ドラゴンの卵', { tex: 'dragon_egg', hardness: 3, light: 1, opaque: false });
+def(B.STONE_SLAB, '石のハーフブロック', { tex: { top: 'smooth_stone', side: 'smooth_stone' }, hardness: 2, tool: 'pickaxe', needsTool: true, ...partial(0.5) });
+def(B.OAK_SLAB, 'オークのハーフブロック', { tex: 'planks', hardness: 2, tool: 'axe', sound: 'wood', ...partial(0.5) });
+def(B.RED_WOOL, '赤の羊毛', { tex: 'red_wool', hardness: 0.8, sound: 'cloth' });
+def(B.BLUE_WOOL, '青の羊毛', { tex: 'blue_wool', hardness: 0.8, sound: 'cloth' });
+def(B.YELLOW_WOOL, '黄色の羊毛', { tex: 'yellow_wool', hardness: 0.8, sound: 'cloth' });
+def(B.GREEN_WOOL, '緑の羊毛', { tex: 'green_wool', hardness: 0.8, sound: 'cloth' });
+def(B.BLACK_WOOL, '黒の羊毛', { tex: 'black_wool', hardness: 0.8, sound: 'cloth' });
+def(B.PUMPKIN, 'カボチャ', { tex: { top: 'pumpkin_top', side: 'pumpkin_side', front: 'pumpkin_face' }, hardness: 1, tool: 'axe', sound: 'wood' });
+def(B.MELON, 'スイカ', { tex: { top: 'melon_top', side: 'melon_side' }, hardness: 1, tool: 'axe', sound: 'wood' });
+def(B.QUARTZ_BLOCK, 'クォーツブロック', { tex: 'quartz_block', hardness: 0.8, tool: 'pickaxe', needsTool: true });
+def(B.JACK_O_LANTERN, 'ジャック・オ・ランタン', { tex: { top: 'pumpkin_top', side: 'pumpkin_side', front: 'pumpkin_face' }, hardness: 1, tool: 'axe', sound: 'wood', light: 15 });
+
 for (let i = 0; i < 256; i++) if (!BLOCKS[i]) BLOCKS[i] = null;
 
 export const FACE_LAYER = new Int16Array(256 * 6);
@@ -102,8 +150,10 @@ export const SHAPE = new Uint8Array(256);
 export const LIGHT = new Uint8Array(256);
 export const ATTEN = new Uint8Array(256);
 export const TINT = new Uint8Array(256); // 1 = all faces tinted, 2 = top only
+export const HEIGHT = new Float32Array(256).fill(1);
 for (const d of BLOCKS) {
   if (!d) continue;
+  if (d.height) HEIGHT[d.id] = d.height;
   for (let f = 0; f < 6; f++) FACE_LAYER[d.id * 6 + f] = d.faces[f];
   OPAQUE[d.id] = d.opaque ? 1 : 0;
   SOLID[d.id] = d.solid ? 1 : 0;

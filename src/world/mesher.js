@@ -1,5 +1,5 @@
 import { CS, CH, PAD } from './constants.js';
-import { FACE_LAYER, OPAQUE, SHAPE, LIGHT, ATTEN, TINT, BLOCKS, B } from './blocks.js';
+import { FACE_LAYER, OPAQUE, SHAPE, LIGHT, ATTEN, TINT, HEIGHT, BLOCKS, B } from './blocks.js';
 
 const W = CS + 2 * PAD;
 const WW = W * W;
@@ -26,7 +26,7 @@ const AOOFF = DIRS.map((d, f) => {
     s1[tang[0]] = c[tang[0]] * 2 - 1;
     s2[tang[1]] = c[tang[1]] * 2 - 1;
     const a = off(d[0] + s1[0], d[1] + s1[1], d[2] + s1[2]);
-    const b = off(d[0] + s2[0], d[1] + s2[1], d[2] + s2[2]);
+    const b = off(d[0] + s2[0], d[1] + s1[1], d[2] + s2[2]);
     const cc = off(d[0] + s1[0] + s2[0], d[1] + s1[1] + s2[1], d[2] + s1[2] + s2[2]);
     return [a, b, cc];
   });
@@ -129,7 +129,9 @@ export function buildMesh(vol, tintGrid) {
         if (id === 0) continue;
         const shape = SHAPE[id];
         if (y < minY) minY = y;
-        if (shape === 1) {
+        if (id === B.DRAGON_EGG) {
+          emitEgg(solid, i, lx, y, lz, FACE_LAYER[id * 6]);
+        } else if (shape === 1) {
           const def = BLOCKS[id];
           const isLeaf = def.leaves, isGlass = def.glass;
           const tint = TINT[id];
@@ -159,15 +161,25 @@ export function buildMesh(vol, tintGrid) {
             if (isWater && nb === B.ICE) continue;
             emitLiquid(isWater ? water : solid, i, lx, y, lz, f, lowered, isWater ? 0 : FACE_LAYER[id * 6], isWater);
           }
+        } else if (shape === 5) {
+          const bh = HEIGHT[id];
+          for (let f = 0; f < 6; f++) {
+            if (f === 3 && y === 0) continue;
+            const ni = (f === 2 && y === CH - 1) ? -1 : i + NOFF[f];
+            const nb = ni < 0 ? 0 : vol[ni];
+            if (f !== 2) {
+              if (OPAQUE[nb]) continue;
+              if (nb === id && f !== 3) continue;
+            }
+            emitPartial(solid, i, lx, y, lz, f, bh, FACE_LAYER[id * 6 + f], id === B.END_PORTAL);
+          }
+        } else if (shape === 6) {
+          emitPortal(plants, vol, i, lx, y, lz, FACE_LAYER[id * 6], id);
         }
       }
     }
   }
   return { solid: solid.out(), plants: plants.out(), water: water.out(), minY: minY === CH ? 0 : minY, maxY: topY };
-}
-
-function lightAt(i) {
-  return [sky[i], blk[i]];
 }
 
 function emitCube(g, vol, i, lx, y, lz, f, layer, tinted, tintAt, sway) {
@@ -206,6 +218,71 @@ function emitCube(g, vol, i, lx, y, lz, f, layer, tinted, tintAt, sway) {
   g.n += 4;
 }
 
+function emitPartial(g, i, lx, y, lz, f, bh, layer, fullGlow) {
+  const d = DIRS[f];
+  const ni = i + NOFF[f];
+  const outside = f === 2 && y === CH - 1;
+  const s = outside ? 15 : Math.max(sky[i], (ni >= 0 && ni < VOL) ? sky[ni] : 0);
+  const b = fullGlow ? 15 : Math.max(blk[i], (ni >= 0 && ni < VOL) ? blk[ni] : 0);
+  const base = g.n;
+  for (let c = 0; c < 4; c++) {
+    const cr = CORNERS[f][c];
+    const py = cr[1] ? bh : 0;
+    g.pos.push(lx + cr[0], y + py, lz + cr[2]);
+    g.nrm.push(d[0] * 127, d[1] * 127, d[2] * 127);
+    const u = UVS[c][0];
+    const v = (f === 2 || f === 3) ? UVS[c][1] : (cr[1] ? 1 : 1 - bh);
+    g.uv.push(u, v);
+    g.data.push(layer, s, b, 0.96);
+    g.tint.push(255, 255, 255);
+  }
+  g.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  g.n += 4;
+}
+
+function emitBox(g, lx, y, lz, x0, y0, z0, x1, y1, z1, layer, s, b, mask = 63) {
+  for (let f = 0; f < 6; f++) {
+    if (!((mask >> f) & 1)) continue;
+    const d = DIRS[f];
+    const base = g.n;
+    for (let c = 0; c < 4; c++) {
+      const cr = CORNERS[f][c];
+      g.pos.push(lx + (cr[0] ? x1 : x0), y + (cr[1] ? y1 : y0), lz + (cr[2] ? z1 : z0));
+      g.nrm.push(d[0] * 127, d[1] * 127, d[2] * 127);
+      g.uv.push(UVS[c][0], UVS[c][1]);
+      g.data.push(layer, s, b, 0.95);
+      g.tint.push(255, 255, 255);
+    }
+    g.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    g.n += 4;
+  }
+}
+
+function emitPortal(g, vol, i, lx, y, lz, layer, id) {
+  const xm = vol[i - 1], xp = vol[i + 1], zm = vol[i - W], zp = vol[i + W];
+  const alongX = (xm === id || xp === id || xm === B.OBSIDIAN || xp === B.OBSIDIAN) && !(zm === id || zp === id);
+  const x0 = alongX ? 0 : 0.375, x1 = alongX ? 1 : 0.625;
+  const z0 = alongX ? 0.375 : 0, z1 = alongX ? 0.625 : 1;
+  let mask = 63;
+  if (y < CH - 1 && vol[i + WW] === id) mask &= ~(1 << 2);
+  if (y > 0 && vol[i - WW] === id) mask &= ~(1 << 3);
+  if (alongX) {
+    if (xp === id) mask &= ~(1 << 0);
+    if (xm === id) mask &= ~(1 << 1);
+  } else {
+    if (zp === id) mask &= ~(1 << 4);
+    if (zm === id) mask &= ~(1 << 5);
+  }
+  emitBox(g, lx, y, lz, x0, 0, z0, x1, 1, z1, layer, sky[i], 15, mask);
+}
+
+function emitEgg(g, i, lx, y, lz, layer) {
+  const s = sky[i], b = Math.max(8, blk[i]);
+  emitBox(g, lx, y, lz, 2 / 16, 0, 2 / 16, 14 / 16, 6 / 16, 14 / 16, layer, s, b);
+  emitBox(g, lx, y, lz, 3 / 16, 6 / 16, 3 / 16, 13 / 16, 12 / 16, 13 / 16, layer, s, b);
+  emitBox(g, lx, y, lz, 5 / 16, 12 / 16, 5 / 16, 11 / 16, 16 / 16, 11 / 16, layer, s, b);
+}
+
 function hashi(x, y, z) {
   let h = (Math.imul(x, 73856093) ^ Math.imul(y, 19349663) ^ Math.imul(z, 83492791)) >>> 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
@@ -214,7 +291,9 @@ function hashi(x, y, z) {
 
 function emitCross(g, i, lx, y, lz, layer, tinted, tintAt, id) {
   const s = sky[i], b = blk[i];
-  const ox = (hashi(lx, y, lz) - 0.5) * 0.3, oz = (hashi(lz, y, lx) - 0.5) * 0.3;
+  const isCrop = BLOCKS[id] && BLOCKS[id].crop;
+  const ox = isCrop ? 0 : (hashi(lx, y, lz) - 0.5) * 0.3;
+  const oz = isCrop ? 0 : (hashi(lz, y, lx) - 0.5) * 0.3;
   const t = tinted ? tintAt(lx, lz) : [1, 1, 1];
   const quads = [
     [[0.15, 0, 0.15], [0.85, 0, 0.85]],
@@ -222,7 +301,7 @@ function emitCross(g, i, lx, y, lz, layer, tinted, tintAt, id) {
   ];
   for (const [a, c] of quads) {
     const base = g.n;
-    const pts = [[a[0], 0, a[2]], [c[0], 0, c[2]], [c[0], 1, c[2]], [a[0], 1, a[2]]];
+    const pts = [[a[0], 0, a[2]], [c[0], 0, c[2]], [c[0], 1, c[2]], [a[0], 1, c[2]]];
     for (let k = 0; k < 4; k++) {
       const p = pts[k];
       g.pos.push(lx + p[0] + ox, y + p[1] * 0.95, lz + p[2] + oz);

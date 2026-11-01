@@ -239,6 +239,8 @@ function metal(seed, base, light, dark) {
   return t;
 }
 
+function woolC(seed, c) { const t = new T(seed).fill(c, 10); for (let i = 0; i < 200; i++) t.shade(Math.floor(t.r() * TS), Math.floor(t.r() * TS), 0.86); return t; }
+
 // ---------- tile builders ----------
 const BUILDERS = {
   stone: (s) => stone(s),
@@ -408,6 +410,65 @@ const BUILDERS = {
   gold_block: (s) => metal(s, [250, 210, 60], [255, 245, 150], [200, 150, 30]),
   diamond_block: (s) => metal(s, [100, 228, 222], [210, 255, 252], [40, 160, 160]),
   coal_block: (s) => new T(s).fill([26, 26, 28], 10).blobs(10, 0.5, 1, () => [50, 50, 54]),
+  tnt_side: (s) => {
+    const t = new T(s).fill([200, 46, 36], 14);
+    t.rect(0, 11, 32, 10, [232, 228, 220]);
+    for (let x = 0; x < 32; x++) { t.set(x, 11, [120, 30, 24]); t.set(x, 20, [120, 30, 24]); }
+    // "TNT" letters
+    const L = (x0, pts) => pts.forEach(([x, y]) => t.set(x0 + x, 13 + y, [30, 30, 30]));
+    const Tl = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5]];
+    const Nl = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [1, 1], [2, 2], [3, 3], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4], [4, 5]];
+    L(5, Tl); L(13, Nl); L(22, Tl);
+    for (let x = 0; x < 32; x += 8) for (let y = 0; y < 32; y++) if (y < 11 || y > 20) t.shade(x, y, 0.8);
+    return t;
+  },
+  tnt_top: (s) => { const t = new T(s).fill([190, 60, 50], 10); for (let i = 0; i < 4; i++) t.rect(4 + (i % 2) * 16, 4 + (i >> 1) * 16, 8, 8, [150, 40, 34]); t.rect(14, 14, 4, 4, [60, 60, 60]); return t; },
+  tnt_bottom: (s) => new T(s).fill([170, 50, 40], 10),
+  chest_side: (s) => { const t = planks(s, [160, 112, 50]); for (let i = 0; i < 32; i++) { t.set(i, 0, [70, 48, 20]); t.set(i, 31, [70, 48, 20]); t.set(0, i, [70, 48, 20]); t.set(31, i, [70, 48, 20]); t.set(i, 11, [70, 48, 20]); } return t; },
+  chest_front: (s) => { const t = BUILDERS.chest_side(s); t.rect(14, 8, 4, 7, [200, 200, 210]); t.rect(15, 11, 2, 2, [60, 60, 70]); return t; },
+  chest_top: (s) => { const t = planks(s, [168, 120, 56]); for (let i = 0; i < 32; i++) { t.set(i, 0, [70, 48, 20]); t.set(i, 31, [70, 48, 20]); t.set(0, i, [70, 48, 20]); t.set(31, i, [70, 48, 20]); } return t; },
+  bed_top: (s) => { const t = new T(s).fill([180, 30, 34], 10); t.rect(0, 0, 32, 10, [236, 236, 236]); for (let x = 0; x < 32; x++) t.shade(x, 10, 0.7); return t; },
+  bed_side: (s) => { const t = planks(s, [150, 110, 64]); t.rect(0, 0, 32, 12, [180, 30, 34]); t.rect(0, 0, 10, 12, [236, 236, 236]); return t; },
+  farmland: (s) => { const t = new T(s).fill([92, 62, 38], 14); for (let y = 0; y < 32; y += 4) for (let x = 0; x < 32; x++) t.shade(x, y, 0.7); return t; },
+  wheat0: (s) => plantTile(s, (t) => blades(t, [80, 170, 50], 10, 8)),
+  wheat1: (s) => plantTile(s, (t) => blades(t, [90, 170, 50], 14, 16)),
+  wheat2: (s) => plantTile(s, (t) => blades(t, [150, 170, 60], 16, 24)),
+  wheat3: (s) => plantTile(s, (t) => { blades(t, [200, 170, 70], 16, 30); for (let i = 0; i < 40; i++) t.set(3 + Math.floor(t.r() * 26), 1 + Math.floor(t.r() * 10), [220, 190, 90]); }),
+  oak_sapling: (s) => plantTile(s, (t) => { for (let y = 0; y < 14; y++) t.set(16, 31 - y, [100, 70, 40]); t.blobs(6, 3, 5, () => [60, 140, 40]); for (let i = 0; i < TS * TS; i++) { const y = (i / TS) | 0; if (y > 22 && !(i % TS === 16)) t.d[i * 4 + 3] = 0; } }),
+  birch_sapling: (s) => plantTile(s, (t) => { for (let y = 0; y < 14; y++) t.set(16, 31 - y, [220, 220, 210]); t.blobs(6, 3, 5, () => [120, 170, 80]); for (let i = 0; i < TS * TS; i++) { const y = (i / TS) | 0; if (y > 22 && !(i % TS === 16)) t.d[i * 4 + 3] = 0; } }),
+  spruce_sapling: (s) => plantTile(s, (t) => { for (let y = 0; y < 18; y++) { t.set(16, 31 - y, [80, 56, 30]); const w = Math.max(0, 9 - Math.abs(y - 9)) >> 0; if (y > 3) for (let x = -w; x <= w; x++) if ((x + y) % 2 === 0) t.set(16 + x, 31 - y, [50, 90, 55]); } }),
+  netherrack: (s) => { const t = new T(s).fill([110, 46, 44], 22); t.blobs(18, 0.6, 1.4, () => [78, 28, 30]); return t; },
+  soul_sand: (s) => { const t = new T(s).fill([84, 64, 50], 16); for (let k = 0; k < 4; k++) { const cx = 4 + t.r() * 24, cy = 4 + t.r() * 24; t.rect(Math.floor(cx), Math.floor(cy), 2, 2, [40, 28, 22]); t.rect(Math.floor(cx) + 4, Math.floor(cy), 2, 2, [40, 28, 22]); t.rect(Math.floor(cx) + 1, Math.floor(cy) + 4, 4, 1, [40, 28, 22]); } return t; },
+  glowstone: (s) => { const t = new T(s); voronoi(t, 14, (v) => [200 + v * 55, 150 + v * 80, 70 + v * 60], 1.2, () => [120, 80, 40]); return t; },
+  quartz_ore: (s) => { const t = BUILDERS.netherrack(s); for (let k = 0; k < 6; k++) { const x = Math.floor(t.r() * 28), y = Math.floor(t.r() * 28); t.rect(x, y, 3, 2, [236, 228, 220]); t.set(x + 3, y + 1, [200, 190, 184]); } return t; },
+  nether_bricks: (s) => bricks(s, [70, 30, 36], [36, 16, 20], 16, 8),
+  portal: (s) => {
+    const t = new T(s);
+    for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+      const v = Math.sin(x * 0.4 + Math.sin(y * 0.3) * 2) * 0.5 + 0.5;
+      const a = v > 0.25 ? 230 : 0;
+      t.set(x, y, [120 + v * 80, 30 + v * 40, 200 + v * 55], a);
+    }
+    return t;
+  },
+  end_stone: (s) => { const t = new T(s).fill([220, 222, 160], 12); t.blobs(10, 0.6, 1.2, () => [196, 196, 130]); return t; },
+  eframe_side: (s) => { const t = BUILDERS.end_stone(s); t.rect(0, 0, 32, 8, [40, 70, 60]); for (let x = 0; x < 32; x += 3) t.set(x, 7, [90, 140, 120]); return t; },
+  eframe_top: (s) => { const t = new T(s).fill([44, 84, 70], 10); t.rect(9, 9, 14, 14, [26, 50, 44]); return t; },
+  eframe_eye_top: (s) => { const t = BUILDERS.eframe_top(s); for (let y = -5; y <= 5; y++) for (let x = -5; x <= 5; x++) if (x * x + y * y <= 25) t.set(16 + x, 16 + y, x * x + y * y < 6 ? [20, 40, 30] : [60, 200, 140]); return t; },
+  end_portal: (s) => { const t = new T(s).fill([8, 12, 20], 4); for (let i = 0; i < 40; i++) { const c = [[60, 180, 160], [140, 220, 200], [80, 90, 200], [220, 240, 255]][i % 4]; t.set(Math.floor(t.r() * TS), Math.floor(t.r() * TS), c); } return t; },
+  dragon_egg: (s) => { const t = new T(s).fill([18, 10, 24], 8); t.blobs(10, 0.5, 1.2, () => [70, 30, 90]); return t; },
+  smooth_stone: (s) => { const t = new T(s).fill([160, 160, 162], 6); for (let i = 0; i < 32; i++) { t.set(i, 0, [110, 110, 112]); t.set(i, 31, [110, 110, 112]); t.set(0, i, [110, 110, 112]); t.set(31, i, [110, 110, 112]); } return t; },
+  red_wool: (s) => woolC(s, [176, 46, 38]),
+  blue_wool: (s) => woolC(s, [52, 64, 160]),
+  yellow_wool: (s) => woolC(s, [240, 196, 40]),
+  green_wool: (s) => woolC(s, [90, 130, 30]),
+  black_wool: (s) => woolC(s, [26, 26, 30]),
+  pumpkin_side: (s) => { const t = new T(s); for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) { const k = (x % 8 === 0 ? 0.75 : 1) * (0.92 + t.r() * 0.12); t.set(x, y, [214 * k, 120 * k, 24 * k]); } return t; },
+  pumpkin_top: (s) => { const t = BUILDERS.pumpkin_side(s); t.rect(14, 14, 4, 4, [90, 70, 30]); return t; },
+  pumpkin_face: (s) => { const t = BUILDERS.pumpkin_side(s); const dark = [60, 30, 4]; t.rect(7, 9, 5, 4, dark); t.rect(20, 9, 5, 4, dark); t.rect(7, 19, 18, 3, dark); t.rect(10, 22, 3, 2, dark); t.rect(19, 22, 3, 2, dark); return t; },
+  melon_side: (s) => { const t = new T(s); for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) { const st = Math.sin(x * 0.8 + Math.sin(y * 0.4) * 1.2) > 0.3; const n = (t.r() - 0.5) * 16; t.set(x, y, st ? [60 + n, 130 + n, 30 + n] : [110 + n, 170 + n, 40 + n]); } return t; },
+  melon_top: (s) => { const t = BUILDERS.melon_side(s); t.rect(14, 14, 4, 4, [80, 100, 30]); return t; },
+  quartz_block: (s) => new T(s).fill([236, 230, 222], 5),
 };
 
 // ---------- atlas building ----------
