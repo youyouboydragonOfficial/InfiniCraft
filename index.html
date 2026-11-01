@@ -50,7 +50,7 @@
           <button id="btn-quit" class="btn ghost">終了</button>
         </div>
       </div>
-      <footer class="ver">v2.0.0 · オリジナル作品（Minecraft とは関係ありません）</footer>
+      <footer class="ver">v2.0.1 · オリジナル作品（Minecraft とは関係ありません）</footer>
     </section>
 
     <!-- World list -->
@@ -93,6 +93,12 @@
         <label class="field">視野角 (FOV) <b id="v-fov"></b><input id="s-fov" type="range" min="50" max="110" step="1" /></label>
         <label class="field">マウス感度 <b id="v-sens"></b><input id="s-sens" type="range" min="0.2" max="3" step="0.1" /></label>
         <label class="field">音量 <b id="v-vol"></b><input id="s-vol" type="range" min="0" max="1" step="0.05" /></label>
+        <div class="field">出力スピーカー
+          <div class="sink-row">
+            <select id="s-sink"><option value="">システム既定のスピーカー</option></select>
+            <button id="btn-test-audio" class="btn small" type="button">🔊 テスト音</button>
+          </div>
+        </div>
         <div class="field">影の品質
           <div class="seg" id="seg-shadow">
             <button data-v="off">オフ</button><button data-v="low">低</button><button data-v="high">高</button><button data-v="ultra">ウルトラ</button>

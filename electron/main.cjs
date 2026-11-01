@@ -17,6 +17,7 @@ const DIST = path.join(__dirname, '..', 'dist');
 
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 let win, allowClose = false;
 

@@ -14,7 +14,7 @@ import { Inventory } from './game/inventory.js';
 import { I, ITEMS, blockDrops, breakTime, canHarvest, maxStack, maxDurability } from './game/items.js';
 import { SMELT } from './game/crafting.js';
 import { Drops, Projectiles, Mobs } from './game/entities.js';
-import { sfx, resumeAudio, setVolume, updateAmbient } from './game/audio.js';
+import { sfx, resumeAudio, setVolume, updateAmbient, setOutputDevice, listOutputDevices } from './game/audio.js';
 import * as Save from './game/save.js';
 import { UI } from './ui.js';
 
@@ -23,7 +23,7 @@ const params = new URLSearchParams(location.search);
 const AUTO = params.has('auto');
 
 // ---------------- settings ----------------
-const DEFAULTS = { rd: 8, fov: 75, sens: 1, vol: 0.7, shadow: 'high', bob: 1 };
+const DEFAULTS = { rd: 8, fov: 75, sens: 1, vol: 0.7, shadow: 'high', bob: 1, sink: '' };
 const settings = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem('ic-settings') || '{}'));
 const saveSettings = () => localStorage.setItem('ic-settings', JSON.stringify(settings));
 
@@ -171,6 +171,7 @@ game.player.onArmorDamage = (raw) => {
 
 const ui = new UI(game);
 setVolume(settings.vol);
+if (settings.sink) setOutputDevice(settings.sink);
 
 const input = { forward: false, back: false, left: false, right: false, jump: false, sneak: false, sprint: false, sprintTap: false, usingBow: false };
 let leftDown = false, rightDown = false, useCooldown = 0, breakCooldown = 0;
@@ -493,6 +494,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mousedown', (e) => {
+  resumeAudio();
   if (document.pointerLockElement !== canvas || game.state !== 'play') return;
   if (e.button === 0) { leftDown = true; attackOrStart(); }
   if (e.button === 2) { rightDown = true; useCooldown = 0; }
@@ -1302,7 +1304,7 @@ function updateDebug() {
   const tt = ((game.meta?.time ?? 0) * 24 + 6) % 24;
   const hrs = Math.floor(tt), mins = Math.floor((tt % 1) * 60);
   $('debug').textContent =
-    `InfiniCraft v2.0.0   ${fps} FPS   [${game.dim.toUpperCase()}]\n` +
+    `InfiniCraft v2.0.1   ${fps} FPS   [${game.dim.toUpperCase()}]\n` +
     `XYZ: ${p.pos.x.toFixed(2)} / ${p.pos.y.toFixed(2)} / ${p.pos.z.toFixed(2)}${p.sprinting ? ' [DASH]' : ''}\n` +
     `チャンク: ${Math.floor(p.pos.x / CS)}, ${Math.floor(p.pos.z / CS)}   読込 ${st.loaded} / 描画 ${st.meshed}\n` +
     `バイオーム: ${BIOME_NAMES[col.b] || game.dim}   地表高度: ${col.h}\n` +
@@ -1441,12 +1443,47 @@ function initSettingsUI() {
   bind('s-vol', 'vol', v => Math.round(v * 100) + '%');
   segBind('seg-shadow', () => settings.shadow, (v) => { settings.shadow = v; saveSettings(); sky.setShadowQuality(v); if (game.world) game.world.shadowDist = v === 'ultra' ? 6 : 4; });
   segBind('seg-bob', () => settings.bob, (v) => { settings.bob = +v; saveSettings(); });
+
+  const sinkSel = $('s-sink');
+  const refreshSinks = async () => {
+    const devs = await listOutputDevices();
+    sinkSel.innerHTML = `<option value="">システム既定のスピーカー</option>` +
+      devs.filter(d => d.deviceId && d.deviceId !== 'default').map((d, i) =>
+        `<option value="${escapeHTML(d.deviceId)}">${escapeHTML(d.label || ('スピーカー ' + (i + 1)))}</option>`
+      ).join('');
+    sinkSel.value = settings.sink || '';
+  };
+  refreshSinks();
+  sinkSel.onchange = async () => {
+    settings.sink = sinkSel.value;
+    saveSettings();
+    await setOutputDevice(settings.sink);
+    sfx.levelup();
+  };
+  $('btn-test-audio').onclick = () => {
+    if (settings.vol <= 0.02) {
+      settings.vol = 0.7;
+      $('s-vol').value = 0.7;
+      $('v-vol').textContent = '70%';
+      setVolume(0.7);
+      saveSettings();
+    }
+    sfx.levelup();
+    setTimeout(() => sfx.mobSay('cow'), 350);
+  };
+  window.__refreshSinks = refreshSinks;
 }
 initSettingsUI();
+window.__sfx = sfx;
 
-$('btn-play').onclick = () => { resumeAudio(); sfx.click(); showWorldList(); };
-$('btn-settings').onclick = () => { sfx.click(); settingsReturn = 'title'; ui.show('settings'); };
-$('btn-help').onclick = () => { sfx.click(); ui.show('help'); };
+document.addEventListener('click', (e) => {
+  resumeAudio();
+  if (e.target.closest('.btn')) sfx.click();
+});
+
+$('btn-play').onclick = () => { showWorldList(); };
+$('btn-settings').onclick = () => { settingsReturn = 'title'; window.__refreshSinks?.(); ui.show('settings'); };
+$('btn-help').onclick = () => { ui.show('help'); };
 $('btn-help-back').onclick = () => ui.show('title');
 $('btn-quit').onclick = () => { if (window.api) window.api.quit(); else window.close(); };
 $('btn-worlds-back').onclick = () => ui.show('title');
@@ -1466,7 +1503,7 @@ $('btn-create').onclick = async () => {
 };
 $('btn-settings-back').onclick = () => ui.show(settingsReturn);
 $('btn-resume').onclick = () => resume();
-$('btn-pause-settings').onclick = () => { settingsReturn = 'pause'; ui.show('settings'); };
+$('btn-pause-settings').onclick = () => { settingsReturn = 'pause'; window.__refreshSinks?.(); ui.show('settings'); };
 $('btn-pause-mode').onclick = () => {
   const p = game.player;
   p.mode = p.mode === 'creative' ? 'survival' : 'creative';
